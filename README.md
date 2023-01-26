@@ -13,8 +13,11 @@ pip install -r requirement.txt
 ## Usage
 ```bash
 #automatic version upgrade
-python versionUp.py
+python versionUp.py --version 0.x --isSnapshot 0 
 ```
+* --version: upgrade version
+* --isSnapshot: 0:False,1:True
+* --labelColor: For the SNAPSHOT version, you can specify the color when creating a new label(ex. 008672). If not specified, the color will be randomly determined.
 
 
 
