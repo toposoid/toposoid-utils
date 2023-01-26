@@ -126,7 +126,7 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
         convert(TOPOSOID_PROJECT_DIR, targetRepogitory, versionTotalName)
         
         #Some projects execute "sbt publishLocal"
-        if targetRepogitory in ["scala-common","scala-data-accessor-neo4j","toposoid-common", "toposoid-knowledgebase-model","toposoid-deduction-protocol-model", "toposoid-sentence-parser-japanese", "toposoid-sentence-transformer-neo4j"]:
+        if targetRepogitory in ["scala-common","scala-data-accessor-neo4j","toposoid-common", "toposoid-knowledgebase-model","toposoid-deduction-protocol-model", "toposoid-sentence-parser-japanese", "toposoid-sentence-transformer-neo4j", "toposoid-feature-vectorizer"]:
             result = subprocess.run("sbt publishLocal", 
                 cwd=TOPOSOID_PROJECT_DIR + "/" + targetRepogitory,
                 shell=True,
