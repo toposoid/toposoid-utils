@@ -53,11 +53,14 @@ repogitoryNames = [
     "toposoid-sentence-parser-japanese-web",
     "toposoid-sentence-parser-english-web",
     "toposoid-sentence-transformer-neo4j",
+    "data-accessor-vald-web",
+    "toposoid-feature-vectorizer",
     "toposoid-scala-lib",
     "scala-data-accessor-neo4j-web",
     "toposoid-deduction-common",
     "toposoid-deduction-unit-exact-match-web",
     "toposoid-deduction-unit-synonym-match-web",
+    "toposoid-deduction-unit-sentence-vector-match-web",
     "toposoid-deduction-admin-web",
     "toposoid-sat-solver-web",
     "toposoid-knowledge-register-web",
@@ -123,7 +126,7 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
         convert(TOPOSOID_PROJECT_DIR, targetRepogitory, versionTotalName)
         
         #Some projects execute "sbt publishLocal"
-        if targetRepogitory in ["scala-common","scala-data-accessor-neo4j","toposoid-common", "toposoid-knowledgebase-model","toposoid-deduction-protocol-model", "toposoid-sentence-parser-japanese", "toposoid-sentence-transformer-neo4j"]:
+        if targetRepogitory in ["scala-common","scala-data-accessor-neo4j","toposoid-common", "toposoid-knowledgebase-model","toposoid-deduction-protocol-model", "toposoid-sentence-parser-japanese", "toposoid-sentence-transformer-neo4j", "toposoid-feature-vectorizer"]:
             result = subprocess.run("sbt publishLocal", 
                 cwd=TOPOSOID_PROJECT_DIR + "/" + targetRepogitory,
                 shell=True,
