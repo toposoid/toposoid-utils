@@ -35,7 +35,7 @@ session = requests.Session()
 session.auth = (GITHUB_USERNAME, GITHUB_PERSONAL_ACCESS_TOKENS)
 
 repogitoryNames = [
-    #"scala-common",    
+    "scala-common",    
     "toposoid-common",
     "toposoid-knowledgebase-model",
     "toposoid-deduction-protocol-model",    
@@ -63,7 +63,7 @@ repogitoryNames = [
     "toposoid-sat-solver-web",
     "toposoid-component-dispatcher-web",
     "toposoid-easy-search-web",
-    #"toposoid",
+    "toposoid",
 ]
 
 
