@@ -31,7 +31,7 @@ import subprocess
 import time
 import argparse
 import random
-import re
+from common import rex_check
 
 GITHUB_USERNAME = os.environ.get('TOPOSOID_GITHUB_USERNAME')
 GITHUB_REPO_OWNERNANE = os.environ.get('TOPOSOID_GITHUB_REPO_OWNERNANE')
@@ -42,44 +42,43 @@ session = requests.Session()
 session.auth = (GITHUB_USERNAME, GITHUB_PERSONAL_ACCESS_TOKENS)
 
 repogitoryNames = [
-    "scala-common",
-    "scala-data-accessor-neo4j",
-    "toposoid-common"
+    "scala-common",    
+    "toposoid-common",
     "toposoid-knowledgebase-model",
-    "toposoid-deduction-protocol-model",
+    "toposoid-deduction-protocol-model",    
     "toposoid-common-nlp-japanese-web",
     "toposoid-common-nlp-english-web",
     "toposoid-sentence-parser-japanese",
     "toposoid-sentence-parser-japanese-web",
-    "toposoid-sentence-parser-english-web",
-    "toposoid-sentence-transformer-neo4j",
-    "data-accessor-vald-web",
-    "toposoid-feature-vectorizer",
-    "toposoid-scala-lib",
+    "toposoid-sentence-parser-english-web",    
+    "scala-data-accessor-neo4j",
+    "toposoid-sentence-transformer-neo4j",   
+    "toposoid-contents-admin-web",
+    "toposoid-common-image-recognition-web",   
+    "data-accessor-weaviate-web",   
+    "toposoid-feature-vectorizer",    
+    "toposoid-scala-lib",    
+    "toposoid-knowledge-register-web",
     "scala-data-accessor-neo4j-web",
     "toposoid-deduction-common",
     "toposoid-deduction-unit-exact-match-web",
     "toposoid-deduction-unit-synonym-match-web",
     "toposoid-deduction-unit-sentence-vector-match-web",
+    "toposoid-deduction-unit-image-vector-match-web",
+    "toposoid-deduction-unit-whole-sentence-image-match-web",
     "toposoid-deduction-admin-web",
     "toposoid-sat-solver-web",
-    "toposoid-knowledge-register-web",
     "toposoid-component-dispatcher-web",
-    #"toposoid-ui",
-    "toposoid"]
+    "toposoid-easy-search-web",
+    "toposoid",
+]
 
-class rex_check(object):
-  def __init__(self, pattern):
-    self.pattern = pattern
-  def __contains__(self, val):
-    return re.match(self.pattern, val)
-  def __iter__(self):
-    return iter(("str", self.pattern))
 
 def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
 
     try:
         versionTotalName = version  
+        
         if isSnapshot:
             versionTotalName = version + "-SNAPSHOT"
             url = 'https://api.github.com/repos/%s/%s/labels' % (GITHUB_REPO_OWNERNANE, targetRepogitory)
@@ -90,7 +89,7 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
             }))
             if not res.status_code == 201:
                 raise Exception("Request Failed: {0} {1}".format(res.text, url))
-            time.sleep(1)
+            time.sleep(3)
 
         #TODO:If the snapshot is false, label the Issue with a release label
         url = 'https://api.github.com/repos/%s/%s/issues' % (GITHUB_REPO_OWNERNANE, targetRepogitory)
@@ -101,15 +100,15 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
         }))
         if not res.status_code == 201:
             raise Exception("Request Failed: {0} {1}".format(res.text, url))
-        time.sleep(1)
+        time.sleep(3)
         
         #make a branch
         url = "https://api.github.com/repos/%s/%s/git/refs/heads/feature" % (GITHUB_REPO_OWNERNANE, targetRepogitory)
         res = session.get(url)
         if not res.status_code == 200:
             raise Exception("Request Failed: {0} {1}".format(res.text, url))
-        time.sleep(1)
-
+        time.sleep(3)
+        
         featureInfo = json.loads(res.content)
         sha = (featureInfo["object"]["sha"])
 
@@ -120,13 +119,13 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
         }))    
         if not res.status_code == 201:
             raise Exception("Request Failed: {0} {1}".format(res.text, url))
-        time.sleep(1)
-       
-        #update files
-        convert(TOPOSOID_PROJECT_DIR, targetRepogitory, versionTotalName)
+        time.sleep(3)
         
+        #update files
+        convert(TOPOSOID_PROJECT_DIR, targetRepogitory, versionTotalName, isSnapshot)
+         
         #Some projects execute "sbt publishLocal"
-        if targetRepogitory in ["scala-common","scala-data-accessor-neo4j","toposoid-common", "toposoid-knowledgebase-model","toposoid-deduction-protocol-model", "toposoid-sentence-parser-japanese", "toposoid-sentence-transformer-neo4j", "toposoid-feature-vectorizer"]:
+        if targetRepogitory in ["scala-common","scala-data-accessor-neo4j","toposoid-common", "toposoid-knowledgebase-model","toposoid-deduction-protocol-model", "toposoid-sentence-parser-japanese", "toposoid-sentence-transformer-neo4j", "toposoid-feature-vectorizer", "toposoid-deduction-common"]:
             result = subprocess.run("sbt publishLocal", 
                 cwd=TOPOSOID_PROJECT_DIR + "/" + targetRepogitory,
                 shell=True,
@@ -136,7 +135,7 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
             if not result.returncode == 0:
                 raise Exception(result.stdout)
 
-
+        
         #github pull request　from upgrade-v0.4-snapshot to feature
         url = 'https://api.github.com/repos/%s/%s/pulls' % (GITHUB_REPO_OWNERNANE, targetRepogitory)
         res = session.post(url,  json.dumps({
@@ -149,7 +148,7 @@ def versionUp(targetRepogitory, version, labelColor, isSnapshot = False):
         if not res.status_code == 201:
             raise Exception("Request Failed: {0} {1}".format(res.text, url))
         time.sleep(3)
-
+        
     except Exception as e:
         print(traceback.format_exc())
         LOG.error(traceback.format_exc())
@@ -164,8 +163,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
         
     color = [''.join([random.choice('0123456789ABCDEF') for j in range(6)])]
-    if args.color:
-      color = args.color
+    if args.labelColor:
+      color = args.labelColor
         
-    for repo in repogitoryNames:    
-        versionUp(repo, args.version, color, args.isSnapshot)
+    for repo in repogitoryNames:           
+        versionUp(repo, args.version, color, isSnapshot = True if args.isSnapshot==1 else False)
