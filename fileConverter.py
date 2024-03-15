@@ -31,9 +31,9 @@ now = datetime.datetime.now(JST)
 regexActionYml = re.compile('.*(PJ_VERSION\: )(.*)')
 regexBuildSbt1 = re.compile('.*(version.*= )\"(\d+\.\d+.*)\"')
 regexBuildSbt2 = re.compile('.*(com\.ideal\.linked\" %% \")(.*% )\"(\d+\.\d+.*)\"')
-regexDockerComposeYml = re.compile('.*(image\: toposoid\/)(toposoid-|scala-).*\:(\d+\.\d+.*)')
-regexDockerComposeYmlWF1 = re.compile('.*(image\: )(toposoid-|scala-).*\:(\d+\.\d+.*)')
-regexDockerComposeYmlWF2 = re.compile('.*(image\: toposoid\/)(toposoid-|scala-).*\:(\d+\.\d+.*)-workflow')
+regexDockerComposeYml = re.compile('.*(image\: toposoid\/)(toposoid-|scala-|data-accessor-).*\:(\d+\.\d+.*)')
+regexDockerComposeYmlWF1 = re.compile('.*(image\: )(toposoid-|scala-|data-accessor-).*\:(\d+\.\d+.*)')
+regexDockerComposeYmlWF2 = re.compile('.*(image\: toposoid\/)(toposoid-|scala-|data-accessor-).*\:(\d+\.\d+.*)-workflow')
 regexEntryPointSh = re.compile('.*(\d+\.\d+.*)\/bin\/.*')
 regexDockerfile1 = re.compile('FROM.*\:(\d+\.\d+.*)')
 regexDockerfile2 = re.compile('.* unzip -o.*(\d+\.\d+.*).zip')
@@ -46,12 +46,15 @@ def replaceVersion(projectRootPath, targetRepogitory, targetFile, regexs, versio
             isHit = False
             for groupNo, regex in regexs:
                 #In the case of Dockerfile, if it contains a specific character string, it is excluded from VersionUp.
-                if targetFile.startswith("Dockerfile") and ("scala-base:" in line or "scala-nlp:" in line or "scala-knp:" in line or "core-nlp:" in line or "python-nlp-japanese:" in line or "python:" in line):
+                if targetFile.startswith("Dockerfile") and ("scala-base:" in line or "scala-nlp:" in line or "scala-knp:" in line or "core-nlp:" in line or "python-nlp-japanese:" in line or "python-nlp-english:" in line or "python:" in line):
                     continue
                 result = regex.match(line)
                 if not result is None:
                     isHit = True
-                    newVersionContent += line.replace(result.group(groupNo), versionStr)                    
+                    if line.endswith("-lowspec\n"):
+                        newVersionContent += line.replace(result.group(groupNo), versionStr + "-lowspec")
+                    else:
+                        newVersionContent += line.replace(result.group(groupNo), versionStr)
                     break #It is assumed that one line is replaced by one regular expression
             if not isHit:
                 newVersionContent += line
@@ -61,7 +64,7 @@ def replaceVersion(projectRootPath, targetRepogitory, targetFile, regexs, versio
     with open(projectRootPath  + "/" + targetRepogitory + "/" + targetFile, 'w', encoding='utf-8') as f:
         f.write(newVersionContent)
 
-def convert(projectRootPath, targetRepogitory, versionStr):
+def convert(projectRootPath, targetRepogitory, versionStr, isSnapshot):
     
 
     repo = git.Repo(projectRootPath + "/" + targetRepogitory)    
@@ -74,6 +77,11 @@ def convert(projectRootPath, targetRepogitory, versionStr):
     if os.path.exists(projectRootPath + "/" + targetRepogitory + "/.github/workflows/action.yml"):
         replaceVersion(projectRootPath, targetRepogitory, ".github/workflows/action.yml", [(2,regexActionYml)], versionStr)
         repo.git.add(".github/workflows/action.yml")
+    #production.yml
+    if not isSnapshot:
+        replaceVersion(projectRootPath, targetRepogitory, ".github/workflows/production.yml", [(2,regexActionYml)], versionStr)
+        repo.git.add(".github/workflows/production.yml")
+
     #build.sbt
     if os.path.exists(projectRootPath + "/" + targetRepogitory + "/build.sbt"):
         replaceVersion(projectRootPath, targetRepogitory, "build.sbt", [(2,regexBuildSbt1), (3,regexBuildSbt2)], versionStr)
@@ -84,11 +92,21 @@ def convert(projectRootPath, targetRepogitory, versionStr):
         replaceVersion(projectRootPath, targetRepogitory, "docker-compose.yml", [(3,regexDockerComposeYml)], versionStr)
         repo.git.add("docker-compose.yml")
 
+    #docker-compose
+    if os.path.exists(projectRootPath + "/" + targetRepogitory + "/docker-compose-full.yml"):
+        replaceVersion(projectRootPath, targetRepogitory, "docker-compose-full.yml", [(3,regexDockerComposeYml)], versionStr)
+        repo.git.add("docker-compose-full.yml")
+
     #docker-compose-workflow　
     #Regular expression order is important
     if os.path.exists(projectRootPath + "/" + targetRepogitory + "/docker-compose-workflow.yml"):
         replaceVersion(projectRootPath, targetRepogitory, "docker-compose-workflow.yml", [(3,regexDockerComposeYmlWF1), (3,regexDockerComposeYmlWF2), (3,regexDockerComposeYml)], versionStr)
         repo.git.add("docker-compose-workflow.yml")
+
+    if os.path.exists(projectRootPath + "/" + targetRepogitory + "/docker-compose-workflow-full.yml"):
+        replaceVersion(projectRootPath, targetRepogitory, "docker-compose-workflow-full.yml", [(3,regexDockerComposeYmlWF1), (3,regexDockerComposeYmlWF2), (3,regexDockerComposeYml)], versionStr)
+        repo.git.add("docker-compose-workflow-full.yml")
+
 
     #docker-entrypoint.sh
     if os.path.exists(projectRootPath + "/" + targetRepogitory + "/docker-entrypoint.sh"):
@@ -108,9 +126,9 @@ def convert(projectRootPath, targetRepogitory, versionStr):
     if os.path.exists(projectRootPath + "/" + targetRepogitory + "/Dockerfile"):
         replaceVersion(projectRootPath, targetRepogitory, "Dockerfile", [(1,regexDockerfile1), (1,regexDockerfile2)], versionStr)
         repo.git.add("Dockerfile")
-    if os.path.exists(projectRootPath + "/" + targetRepogitory + "/Dockerfile-smallspec"):
-        replaceVersion(projectRootPath, targetRepogitory, "Dockerfile-smallspec", [(1,regexDockerfile1), (1,regexDockerfile2)], versionStr)
-        repo.git.add("Dockerfile-smallspec")
+    if os.path.exists(projectRootPath + "/" + targetRepogitory + "/Dockerfile-lowspec"):
+        replaceVersion(projectRootPath, targetRepogitory, "Dockerfile-lowspec", [(1,regexDockerfile1), (1,regexDockerfile2)], versionStr)
+        repo.git.add("Dockerfile-lowspec")
     if os.path.exists(projectRootPath + "/" + targetRepogitory + "/Dockerfile-workflow"):
         replaceVersion(projectRootPath, targetRepogitory, "Dockerfile-workflow", [(1,regexDockerfile1), (1,regexDockerfile2)], versionStr)
         repo.git.add("Dockerfile-workflow")
